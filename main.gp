@@ -85,10 +85,26 @@ print("diff=", logint(lift(Mod(stereotype-C, n)), 128));
 print("diff=", logint(lift(Mod(stereotype-encode(Strprintf(template,  "B1jTVFbKpP")), n)), 128));
 \\ différence de l'ordre de 1e65
 
-s = [];
-while (s == [], rand_msg = Strprintf(template, randompwd(10)); rand_stereotype = lift(Mod(encode(rand_msg), n)^e); s = zncoppersmith((rand_stereotype + x)^e - ciphertext, n, X); print(rand_msg, " ", s));
-\\C = lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e);
+\\ On exploite le fait que l'on connait la forme que prennent les mots de passe:
+\\ chaines de caractère ASCII de longueur 10
+\\ On génère des messages jusqu'à ce que la différence avec le chiffré soit suffisamment petite
+\\ afin d'applique Coppersmith
+StereotypedAttack(n, e, c) = {
+  s = [];
+  rpwd = "";
+  diff = 40;
+  X = 1E27;
+  while(s == [],
+    rpwd = randompwd(10);
+    rand_msg = Strprintf(template, rpwd);
+    rand_stereotype = lift(Mod(encode(rand_msg), n)^e);
+    diff = logint(abs(lift(Mod(rand_stereotype - ciphertext, n))), 128);
+    \\print(abs(lift(Mod(rand_stereotype - ciphertext, n))), " ", diff);
+    s = zncoppersmith((rand_stereotype + x)^e - c, n, X);\\print(rand_msg, " ", s));
+  );
+  s = zncoppersmith((rand_stereotype + x)^e - c, n, X);\\print(rand_msg, " ", s));
+  print(rpwd);
+  print(decode(s[1]));
+}
 
-\\s = zncoppersmith((C + x)^e - ciphertext, n, X); \\[1];
-\\print(s);
-print(decode(s[1]));
+StereotypedAttack(n, e, ciphertext);
