@@ -1,3 +1,4 @@
+default(parisizemax, 70m);
 /**
 Copyright 2021 cryptoflop.org
 Gestion des changements de mots de passe.
@@ -17,6 +18,9 @@ chpasswd(user,pwd) = {
 template = {
   "Cher collaborateur, votre nouveau mot de passe est %s. "
   "Merci de votre comprehension, le service informatique.";
+  }
+template2 = {
+  "Cher collaborateur, votre nouveau mot de passe est %s. ";
   }
 change_password(user,modulus,e=7) = {
   iferr(
@@ -39,7 +43,7 @@ change_password(user,modulus,e=7) = {
 \\ https://github.com/mimoo/RSA-and-LLL-attacks/blob/master/survey_final.pdf
 
 \\ Récupération de la clé publique RSA et du message chiffré:
-encode(m) = lift(Mod(fromdigits(Vec(Vecsmall(m)), 128), n));
+encode(m) = fromdigits(Vec(Vecsmall(m)), 128);
 decode(m) = Strchr(digits(m, 128));
 
 parameters = readstr("input.txt");
@@ -48,30 +52,43 @@ ciphertext = eval(parameters[2]);
 n = key[1];
 e = key[2];
 
-print("ciphertext=", ciphertext);
+\\print("ciphertext=", ciphertext);
 print("\ne=", e, ", n=", n);
 
-stereotype1 = encode("Cher collaborateur, votre nouveau mot de passe est ");
-stereotype2 = encode(". Merci de votre comprehension, le service informatique.");
+stereotype = encode("Cher collaborateur, votre nouveau mot de passe est xxxxxxxxxx. Merci de votre comprehension, le service informatique.");
+
+
 \\ Attaque reprise du manuel de PARI/GP, page 227
 \\ https://pari.math.u-bordeaux.fr/pub/pari/manuals/2.13.0/users.pdf
-StereotypedAttack(n, e, c, stereotype1, stereotype2) = {
-  X = 1e30; \\ n^(1/e - epsilon)
-  zncoppersmith((stereotype1 + x + stereotype2)^e - c, n, X);
+StereotypedAttack(n, e, c, stereotype) = {
+  X = 1e26; \\ n^(1/e - epsilon)
+  zncoppersmith((stereotype + x)^e - c, n, X);
 }
 
-print(StereotypedAttack(n, e, ciphertext, stereotype1, stereotype2));
+\\print(StereotypedAttack(n, e, ciphertext, stereotype));
 
 e = 7; \\ small public encryption exponent
 
-X = 1e26;\\floor(n^(1/e)); \\ N^(1/e - epsilon)
+\\print(decode(ciphertext));
+X = 1e27;\\floor(n^(1/e)); \\ N^(1/e - epsilon)
 x0 = encode("B1jTVFbKpP"); \\ unknown short message
 \\print("msg1 = ", lift(Mod(stereotype1 + x0 + stereotype2, n)^e));
-print("okay ", encode(Strprintf(template, "B1jTVFbKpP")), "\n");
-print("msg1 = ", stereotype1 + x0 + stereotype2);
+\\print("okay ", encode(Strprintf(template, "B1jTVFbKpP")), "\n");
+\\print("msg1 = ", lift( (stereotype + Mod(x0, n))^e ));
 \\print("\nmsg2 = ",lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e)); 
-print("\nmsg2 = ", encode(Strprintf(template, "B1jTVFbKpP"))); 
-C = lift( (stereotype1 + Mod(x0,n) + stereotype2)^e ); \\ known ciphertext, with padding P
-\\C= lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e);
-s=zncoppersmith((stereotype1 + x + stereotype2)^e - C, n, X)[1];
-print(decode(s));
+\\print("\nmsg2 = ", lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e)); 
+C = lift( (stereotype + x0)^e); \\ known ciphertext, with padding P
+\\print(lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e));
+print(Strprintf(template,  "B1jTVFbKpP"), " ", encode(Strprintf(template,  "B1jTVFbKpP")));
+print("\n", decode(stereotype), " ", stereotype);
+print("diff=", logint(lift(Mod(stereotype-C, n)), 128));
+print("diff=", logint(lift(Mod(stereotype-encode(Strprintf(template,  "B1jTVFbKpP")), n)), 128));
+\\ différence de l'ordre de 1e65
+
+s = [];
+while (s == [], rand_msg = Strprintf(template, randompwd(10)); rand_stereotype = lift(Mod(encode(rand_msg), n)^e); s = zncoppersmith((rand_stereotype + x)^e - ciphertext, n, X); print(rand_msg, " ", s));
+\\C = lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e);
+
+\\s = zncoppersmith((C + x)^e - ciphertext, n, X); \\[1];
+\\print(s);
+print(decode(s[1]));
