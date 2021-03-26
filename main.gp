@@ -61,7 +61,7 @@ stereotype = encode("Cher collaborateur, votre nouveau mot de passe est         
 
 X = 1E27; \\ borne pour les racines, déterminée empiriquement mais inférieure à n^(1/e)
 \\ Le message chiffré est de la forme stereotype + x * 128^56,
-\\ on cherche donc les racines x du polynôme  stereotype + x * 128^56 - ciphertext
+\\ on cherche donc les "petites" racines x du polynôme stereotype + x * 128^56 - ciphertext
 \\ On multiplie x par 128^56 car l'entier recherché correspondant au mot de passe
 \\ est décalé de 56 charactères depuis la fin (le message est supposé codé en base 128).
 s = zncoppersmith((stereotype + 128^56 * x)^e - ciphertext, n, X);
