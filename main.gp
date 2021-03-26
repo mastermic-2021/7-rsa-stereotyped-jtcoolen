@@ -19,9 +19,6 @@ template = {
   "Cher collaborateur, votre nouveau mot de passe est %s. "
   "Merci de votre comprehension, le service informatique.";
   }
-template2 = {
-  "Cher collaborateur, votre nouveau mot de passe est %s. ";
-  }
 change_password(user,modulus,e=7) = {
   iferr(
     pwd = randompwd(10);
@@ -42,47 +39,38 @@ change_password(user,modulus,e=7) = {
 \\ se généralisant à un module inconnu) :
 \\ https://github.com/mimoo/RSA-and-LLL-attacks/blob/master/survey_final.pdf
 
-\\ Récupération de la clé publique RSA et du message chiffré:
 encode(m) = fromdigits(Vec(Vecsmall(m)), 128);
 decode(m) = {
   d = digits(m, 128);
-  for(i = 1, #d, d[i] = d[i]+48);
+  for(i = 1, #d, d[i] = d[i]+32); \\ on ajoute 32 qui correspond au code espace
   Strchr(d);
 }
 
+
+\\ Récupération de la clé publique RSA et du message chiffré:
 parameters = readstr("input.txt");
 key = eval(parameters[1]);
 ciphertext = eval(parameters[2]);
 n = key[1];
 e = key[2];
 
-stereotype = encode("Cher collaborateur, votre nouveau mot de passe est 0000000000. Merci de votre comprehension, le service informatique.");
+stereotype = encode("Cher collaborateur, votre nouveau mot de passe est           . Merci de votre comprehension, le service informatique.");
 
 \\ Attaque reprise du manuel de PARI/GP, page 227
 \\ https://pari.math.u-bordeaux.fr/pub/pari/manuals/2.13.0/users.pdf
 
-\\ On exploite le fait que l'on connait la forme que prennent les mots de passe:
-\\ chaines de caractère ASCII de longueur 10
-\\ On génère des messages jusqu'à ce que la différence avec le chiffré soit suffisamment petite
-\\ afin d'applique Coppersmith
-/*StereotypedAttack(n, e, c) = {
-  s = [];
-  rpwd = "";
-  diff = 40;
-  X = 1E27;
-  while(s == [],
-    rpwd = randompwd(10);
-    rand_msg = Strprintf(template, rpwd);
-    rand_stereotype = lift(Mod(encode(rand_msg), n)^e);
-    diff = logint(abs(lift(Mod(rand_stereotype - ciphertext, n))), 128);
-    \\print(abs(lift(Mod(rand_stereotype - ciphertext, n))), " ", diff);
-    s = zncoppersmith((rand_stereotype + x)^e - c, n, X);\\print(rand_msg, " ", s));
-  );
-  s = zncoppersmith((rand_stereotype + x)^e - c, n, X);\\print(rand_msg, " ", s));
-  print(rpwd);
-  print(decode(s[1]));
-}*/
-
-X = 1E27;
+X = 1E27; \\ borne pour les racines, déterminée empiriquement mais inférieure à n^(1/e)
+\\ Le message chiffré est de la forme stereotype + x * 128^56,
+\\ on cherche donc les racines x du polynôme  stereotype + x * 128^56 - ciphertext
+\\ On multiplie x par 128^56 car l'entier recherché correspondant au mot de passe
+\\ est décalé de 56 charactères depuis la fin (le message est supposé codé en base 128).
 s = zncoppersmith((stereotype + 128^56 * x)^e - ciphertext, n, X);
-print(decode(s[1]));
+\\print(s);
+print(Strprintf(template, decode(s[1])));
+
+\\ Vérification:
+mail = Strprintf(template, "94aLGXO3sA");
+m = fromdigits(Vec(Vecsmall(mail)),128);
+c = lift(Mod(m,n)^e);
+\\print(c);
+\\print(c==ciphertext); \\ affiche 1
