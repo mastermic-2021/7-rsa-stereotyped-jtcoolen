@@ -44,7 +44,11 @@ change_password(user,modulus,e=7) = {
 
 \\ Récupération de la clé publique RSA et du message chiffré:
 encode(m) = fromdigits(Vec(Vecsmall(m)), 128);
-decode(m) = Strchr(digits(m, 128));
+decode(m) = {
+  d = digits(m, 128);
+  for(i = 1, #d, d[i] = d[i]+48);
+  Strchr(d);
+}
 
 parameters = readstr("input.txt");
 key = eval(parameters[1]);
@@ -52,44 +56,16 @@ ciphertext = eval(parameters[2]);
 n = key[1];
 e = key[2];
 
-\\print("ciphertext=", ciphertext);
-print("\ne=", e, ", n=", n);
-
-stereotype = encode("Cher collaborateur, votre nouveau mot de passe est xxxxxxxxxx. Merci de votre comprehension, le service informatique.");
-
+stereotype = encode("Cher collaborateur, votre nouveau mot de passe est 0000000000. Merci de votre comprehension, le service informatique.");
 
 \\ Attaque reprise du manuel de PARI/GP, page 227
 \\ https://pari.math.u-bordeaux.fr/pub/pari/manuals/2.13.0/users.pdf
-StereotypedAttack(n, e, c, stereotype) = {
-  X = 1e26; \\ n^(1/e - epsilon)
-  zncoppersmith((stereotype + x)^e - c, n, X);
-}
-
-\\print(StereotypedAttack(n, e, ciphertext, stereotype));
-
-e = 7; \\ small public encryption exponent
-
-\\print(decode(ciphertext));
-X = 1e27;\\floor(n^(1/e)); \\ N^(1/e - epsilon)
-x0 = encode("B1jTVFbKpP"); \\ unknown short message
-\\print("msg1 = ", lift(Mod(stereotype1 + x0 + stereotype2, n)^e));
-\\print("okay ", encode(Strprintf(template, "B1jTVFbKpP")), "\n");
-\\print("msg1 = ", lift( (stereotype + Mod(x0, n))^e ));
-\\print("\nmsg2 = ",lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e)); 
-\\print("\nmsg2 = ", lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e)); 
-C = lift( (stereotype + x0)^e); \\ known ciphertext, with padding P
-\\print(lift(Mod(encode(Strprintf(template, "B1jTVFbKpP")), n)^e));
-print(Strprintf(template,  "B1jTVFbKpP"), " ", encode(Strprintf(template,  "B1jTVFbKpP")));
-print("\n", decode(stereotype), " ", stereotype);
-print("diff=", logint(lift(Mod(stereotype-C, n)), 128));
-print("diff=", logint(lift(Mod(stereotype-encode(Strprintf(template,  "B1jTVFbKpP")), n)), 128));
-\\ différence de l'ordre de 1e65
 
 \\ On exploite le fait que l'on connait la forme que prennent les mots de passe:
 \\ chaines de caractère ASCII de longueur 10
 \\ On génère des messages jusqu'à ce que la différence avec le chiffré soit suffisamment petite
 \\ afin d'applique Coppersmith
-StereotypedAttack(n, e, c) = {
+/*StereotypedAttack(n, e, c) = {
   s = [];
   rpwd = "";
   diff = 40;
@@ -105,6 +81,8 @@ StereotypedAttack(n, e, c) = {
   s = zncoppersmith((rand_stereotype + x)^e - c, n, X);\\print(rand_msg, " ", s));
   print(rpwd);
   print(decode(s[1]));
-}
+}*/
 
-StereotypedAttack(n, e, ciphertext);
+X = 1E27;
+s = zncoppersmith((stereotype + 128^56 * x)^e - ciphertext, n, X);
+print(decode(s[1]));
