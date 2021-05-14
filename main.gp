@@ -1,4 +1,3 @@
-default(parisizemax, 70m);
 /**
 Copyright 2021 cryptoflop.org
 Gestion des changements de mots de passe.
